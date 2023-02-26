@@ -10,7 +10,7 @@ var cors = require('cors')
 //var io = require('socket.io')(server);
 const mongoose = require('mongoose')
 app.use(cors({
-    origin: 'http://localhost:8000'
+    origin: 'http://13.212.210.52:8000'
   }));
 
 const Schema = mongoose.Schema;
