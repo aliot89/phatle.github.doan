@@ -2,18 +2,26 @@ var express = require('express');
 //var app = require('express')();
 const mongoose = require('mongoose')
 const moment = require('moment')
-var bodyParser = require('body-parser')
+const bodyParser = require('body-parser');
 
+
+const Expo = require('expo-server-sdk').Expo;
+const expo = new Expo();
 const http = require('http')
+
 const loca0 = require('../models/dbsensor')
 const loca2 = require('../models/loca2');
 const test1 = require('../models/test1');
-const { Console } = require('console');
+
 const route = express.Router();
+const messages = [
+  
+];
+
 route.use(bodyParser.urlencoded({
     extended: true
   }))
-  let m1 ="";
+
 route.get('/', function(req, res) {
 
     ///res.render("index")
@@ -88,8 +96,100 @@ route.get('/appdata', function(req, res) {
         })
 
     });
+    
+      
 
 })
+//train/1/2/3/
+route.get('/train/:temp/:hmdt/:point1/', (req, res) => {
+  const mua = Number(req.params.temp);
+  const chay = Number(req.params.hmdt);
+  const doman = Number(req.params.point1);
+   // const data1 = require('./data.json')
+
+    //const network = new brain.recurrent.LSTM();
+    //network.train(data1, {
+    //    iterations: 2000
+    //})
+   // const output = network.run([mua, chay,doman])
+
+/**
+ * Printing the output on the console
+ */
+
+//if (output > 0.5) {
+ //   console.log('Độ mặn sẽ tăng');
+ // } else {
+ //   console.log('Độ mặn sẽ giảm');
+ //s }
+
+ const tf = require('@tensorflow/tfjs');
+const data = require('./data.json');
+
+// Tạo mảng dữ liệu đầu vào và đầu ra
+const inputData = data.map(item => item.input);
+const outputData = data.map(item => item.output);
+
+// Tạo mô hình
+const model = tf.sequential();
+model.add(tf.layers.dense({inputShape: [3], units: 4, activation: 'sigmoid'}));
+model.add(tf.layers.dense({units: 1, activation: 'sigmoid'}));
+
+// Biên dịch mô hình
+model.compile({loss: 'binaryCrossentropy', optimizer: 'adam'});
+
+// Huấn luyện mô hình
+model.fit(tf.tensor(inputData), tf.tensor(outputData), {epochs: 100})
+  .then(() => {
+    // Dự báo độ mặn của nước mới
+    const newData = [mua, chay, doman];
+    const prediction = model.predict(tf.tensor([newData]));
+    const predictionValue = prediction.dataSync()[0];
+    if (predictionValue > 0.5) {
+      console.log('Mặn');
+      async function getTokenAndSendMessage() {
+        // Thông tin của thiết bị nhận thông báo
+        const somePushTokens = ['ExponentPushToken[p3hnvCPI26TWpzQ1aMpJxY]'];
+      
+        // Tạo các hàm async để lấy thông tin của thiết bị
+        const chunks = expo.chunkPushNotifications(somePushTokens.map(token => ({
+          to: token,
+          sound: 'default',
+          body: 'Cảnh báo độ mặn tăng cao'+' '+'độ mặn'+doman,
+          data: { withSome: 'data' },
+        })));
+      
+        const tickets = [];
+        for (const chunk of chunks) {
+          try {
+            const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
+            tickets.push(...ticketChunk);
+          } catch (error) {
+            console.error(error);
+          }
+        }
+      
+        console.log(tickets);
+      }
+      
+      getTokenAndSendMessage();
+      const chunks = expo.chunkPushNotifications(messages);
+      (async () => {
+        for (const chunk of chunks) {
+          try {
+            const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
+            console.log(ticketChunk);
+          } catch (error) {
+            console.error(error);
+          }
+        }
+      })();
+    } else {
+      console.log('Không mặn');
+    }  });
+
+  });
+ 
 route.get('/tiltleapp', function(req, res) {
 
     test1.find().then(test1 => {
@@ -169,8 +269,24 @@ var interval = setInterval(function() {
             fullday: day3
         })
 
+      //  const data1 = require('./data.json')
 
-    })
+       // const network = new brain.recurrent.LSTM();
+      //  network.train(data1, {
+          //  iterations: 2000
+        })
+       // const output = network.run([p, s,s])
+    
+    /**
+     * Printing the output on the console
+     */
+    
+    //if (output > 0.5) {
+     //   console.log('Độ mặn sẽ tăng');
+     // } else {
+     //   console.log('Độ mặn sẽ giảm');
+   //  // }
+   // })
 }, 60000)
 var interval = setInterval(function() {
 
@@ -210,33 +326,24 @@ var interval = setInterval(function() {
 
         console.log(day)
         console.log(month)
-        const brain = require('brain.js');
-        const fs = require('fs');
-        
-        // Khởi tạo mạng neural
-        const net = new brain.NeuralNetwork();
-        
-        // Đọc nội dung tệp training_data.json
-        fs.readFile('./training_data.json', (err, data) => {
-          if (err) {
-            console.error(err);
-            return;
-          }
-        
-          // Chuyển nội dung tệp thành mảng JSON
-          const trainingData = JSON.parse(data);
-        
-          // Train mạng neural
-          net.train(trainingData, {
-            errorThresh: 0.005,  // Chỉ số sai số cho phép
-            iterations: 20000,   // Số vòng lặp tối đa cho training
-            log: true,           // Bật log để theo dõi quá trình training
-            logPeriod: 100       // Số vòng lặp giữa các lần log
-          });
-        
-          // Sử dụng mạng neural để dự đoán mực nước sau khi có mưa
-          const output = net.run({ mucnuoc: 10, luongmua: 10 });
-          console.log(`Water level after rain:`+ stringify(output))})
+      //const brain=require('brainjs')
+       // const data1 = require('./data.json')
+
+       // const network = new brain.recurrent.LSTM();
+       // network.train(data1, {
+       //     iterations: 2000
+       // })
+       // const output = network.run([t, h,a1])
+    
+    /**
+     * Printing the output on the console
+     */
+    
+    //if (output > 0.5) {
+    //    console.log('Độ mặn sẽ tăng');
+    //  } else {
+    //    console.log('Độ mặn sẽ giảm');
+    //  }
         
         loca0.create({
             Percentsals: t,
