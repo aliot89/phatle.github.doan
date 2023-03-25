@@ -2,9 +2,9 @@ var express = require('express');
 //var app = require('express')();
 const mongoose = require('mongoose')
 const moment = require('moment')
+const geolib = require('geolib');
+
 const bodyParser = require('body-parser');
-
-
 const Expo = require('expo-server-sdk').Expo;
 const expo = new Expo();
 const http = require('http')
@@ -12,6 +12,9 @@ const http = require('http')
 const loca0 = require('../models/dbsensor')
 const loca2 = require('../models/loca2');
 const test1 = require('../models/test1');
+const info0 = require('../models/infodivice')
+const { stringify } = require('querystring');
+const { Console } = require('console');
 
 const route = express.Router();
 const messages = [
@@ -21,6 +24,7 @@ const messages = [
 route.use(bodyParser.urlencoded({
     extended: true
   }))
+  route.use(bodyParser.json());
 
 route.get('/', function(req, res) {
 
@@ -32,18 +36,21 @@ route.get('/', function(req, res) {
     //   }).sort({_id:-1}).limit(1);
     loca0.find().then(loca0 => {
         loca2.find().then(loca2 => {
-
+          test1.find().then(test1 => {
             res.render('index', {
                 sensorlist: loca0,
                 chart1: loca0,
                 sensorlist1: loca2,
+                hehe:test1
             });
+          });
         })
 
     });
 
 
 });
+
 route.get('/intro', function(req, res) {
     //loca0.find({}).then(loca0 => {
     //    res.render('intro',{loca0})  })
@@ -100,30 +107,48 @@ route.get('/appdata', function(req, res) {
       
 
 })
-//train/1/2/3/
-route.get('/train/:temp/:hmdt/:point1/', (req, res) => {
+//train/1/2/3/10.762622/106.660172
+route.get('/train/:temp/:hmdt/:point1/:lat/:lon', (req, res) => {
   const mua = Number(req.params.temp);
   const chay = Number(req.params.hmdt);
   const doman = Number(req.params.point1);
-   // const data1 = require('./data.json')
+  const sensorLa = Number(req.params.lat);
+  const sensorLo = Number(req.params.lon);
+  function deg2rad(deg) {
+    return deg * (Math.PI/180)
+  }
+  const radius = 20; // bán kính cho trước
 
-    //const network = new brain.recurrent.LSTM();
-    //network.train(data1, {
-    //    iterations: 2000
-    //})
-   // const output = network.run([mua, chay,doman])
+  function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+    const R = 6371; // bán kính trái đất (km)
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c; // khoảng cách giữa 2 điểm trên trái đất (km)
+    return d;
+  }
 
-/**
- * Printing the output on the console
- */
+  info0.find({}, (err, info0) => {
+    if (err) {
+      console.error(err);
+      return;
+    }
+    const latitudes = info0.map(item => item.latuude);
+    console.log(latitudes);
 
-//if (output > 0.5) {
- //   console.log('Độ mặn sẽ tăng');
- // } else {
- //   console.log('Độ mặn sẽ giảm');
- //s }
 
- const tf = require('@tensorflow/tfjs');
+  info0.forEach(info0 => {
+    const { latitude, longitude } = info0;
+  const distance = getDistanceFromLatLonInKm(sensorLa, sensorLo, latitude, longitude);
+  console.log(distance)
+  
+  if (distance <= radius) {
+    // Thiết bị nằm trong bán kính của sensor, gửi thông báo đến thiết bị đó
+    const tf = require('@tensorflow/tfjs');
 const data = require('./data.json');
 
 // Tạo mảng dữ liệu đầu vào và đầu ra
@@ -149,13 +174,13 @@ model.fit(tf.tensor(inputData), tf.tensor(outputData), {epochs: 100})
       console.log('Mặn');
       async function getTokenAndSendMessage() {
         // Thông tin của thiết bị nhận thông báo
-        const somePushTokens = ['ExponentPushToken[p3hnvCPI26TWpzQ1aMpJxY]'];
+        const somePushTokens = [info0.tokenData];
       
         // Tạo các hàm async để lấy thông tin của thiết bị
         const chunks = expo.chunkPushNotifications(somePushTokens.map(token => ({
           to: token,
           sound: 'default',
-          body: 'Cảnh báo độ mặn tăng cao'+' '+'độ mặn'+doman,
+          body: 'Cảnh báo độ mặn tăng cao'+' '+'độ mặn'+' '+doman,
           data: { withSome: 'data' },
         })));
       
@@ -188,8 +213,48 @@ model.fit(tf.tensor(inputData), tf.tensor(outputData), {epochs: 100})
       console.log('Không mặn');
     }  });
 
-  });
+  }
+    if (err) {
+      console.error(err);
+      return;
+    }
+    console.log(info0)
+
+  })
+
+
+
+  })
+
  
+  })
+  route.post('/device-data', (req, res) => {
+    console.log(req.body);
+    const { token, latitude, longitude } = req.body;
+  
+    // Trích xuất giá trị `data` từ thuộc tính `token` trong request body
+    const tokenData = token.data;
+  
+  
+   
+    // Lưu document vào cơ sở dữ liệu
+    const info0 = require('../models/infodivice'); // Import model info0
+    const info0Model =info0
+    const newInfo = new info0({ tokenData, latitude, longitude });
+
+    // ...
+    
+    newInfo.save((err) => {
+      if (err) {
+        console.log(err);
+        res.status(500).send(err);
+      } else {
+        console.log('Location saved successfully');
+        res.status(200).send('Location saved successfully');
+      }
+    })
+ });
+  
 route.get('/tiltleapp', function(req, res) {
 
     test1.find().then(test1 => {

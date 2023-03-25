@@ -76,6 +76,25 @@
         <td>
             <p id="time1"></p>
         </td>
+        <tr>
+            <td class="title" colspan="5" style="background-color:#fff!important;">Sông Sài Gòn</td>
+
+        </tr>
+        <td>
+            <p id="diachis1"></p>
+        </td>
+        <td>
+            <p id="percents1"></p>
+        </td>
+        <td>
+            <p id="speeds1"></p>
+        </td>
+        <td>
+            <p id="dubaos1"></p>
+        </td>
+        <td>
+            <p id="times1"></p>
+        </td>
         <script>
             <% sensorlist.forEach(loca0 => {%>
             var h = JSON.stringify('<%=loca0.Percentsals%>')
@@ -101,17 +120,21 @@
 
 
                             <%}) %>
+                            <% hehe.forEach(test1 => {%>
+                         var h = JSON.stringify('<%=test1.Percentsals1%>')
+                        document.getElementById("diachis1").innerHTML = `<%=test1.diachis1%>`
+
+                        document.getElementById("percents1").innerHTML = `<%=test1.Percentsals1%>%`
+                        document.getElementById("speeds1").innerHTML = `<%=test1.flashws1%>`
+                        document.getElementById("dubaos1").innerHTML = `<%=test1.dubaos1%>`
+                        document.getElementById("times1").innerHTML = `<%=test1.times1%>,<%=test1.hours1%>`
+
+
+
+                            <%}) %>
         </script>
        
-        <form>
-            <select class="custom-select" onchange="fetchHandler()" id="select">
-                <option class="active">Choose one...</option>
-                <option>song hau</option>
-                <option>Tien Giang</option>
-            </select>
-            <div id="list1"></div>
-
-        </form>
+   
         <br>
 
     </table>
